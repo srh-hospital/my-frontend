@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFID Patient Management — Saint Raphael Hospital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --crimson:     #9B1C1C;
+      --crimson-d:   #6B0F0F;
+      --crimson-l:   #C53030;
+      --rose:        #FED7D7;
+      --rose-l:      #FFF5F5;
+      --ink:         #1A1A1A;
+      --muted:       #6B7280;
+      --border:      #E5E7EB;
+      --surface:     #FFFFFF;
+      --bg:          #F9FAFB;
+      --success:     #059669;
+      --warning:     #D97706;
+      --radius:      10px;
+      --radius-sm:   6px;
+      --shadow:      0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-lg:   0 8px 32px rgba(0,0,0,.12);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      background: linear-gradient(135deg, var(--crimson-d) 0%, var(--crimson) 50%, var(--crimson-l) 100%);
+      align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    #login-screen::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,.04) 0%, transparent 50%);
+    }
+    #login-screen::after {
+      content: ''; position: absolute;
+      width: 600px; height: 600px;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 50%; top: -200px; right: -200px;
+    }
+    .login-wrapper {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 32px;
+      padding: 20px; width: 100%; max-width: 440px;
+      animation: fadeUp .5s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .login-brand { text-align: center; color: #fff; }
+    .login-brand .hosp-icon { font-size: 48px; display: block; margin-bottom: 12px; filter: drop-shadow(0 2px 8px rgba(0,0,0,.3)); }
+    .login-brand h1 { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: .5px; margin-bottom: 4px; }
+    .login-brand p { font-size: 12px; opacity: .75; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; }
+    .login-card { background: var(--surface); border-radius: 16px; padding: 36px 40px; width: 100%; box-shadow: var(--shadow-lg); }
+    .login-card h2 { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--crimson); margin-bottom: 24px; text-align: center; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+    .field input, .field select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); background: var(--surface); outline: none; transition: border-color .2s, box-shadow .2s; }
+    .field input:focus, .field select:focus { border-color: var(--crimson); box-shadow: 0 0 0 3px rgba(155,28,28,.1); }
+
+    /* ── BUTTONS ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 9px 18px; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all .18s ease; white-space: nowrap; letter-spacing: .2px; }
+    .btn-primary { background: var(--crimson); color: #fff; }
+    .btn-primary:hover { background: var(--crimson-d); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(155,28,28,.3); }
+    .btn-primary:active { transform: none; }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-ghost { background: transparent; color: var(--crimson); border: 1.5px solid var(--crimson); }
+    .btn-ghost:hover { background: var(--rose-l); }
+    .btn-danger { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+    .btn-danger:hover { background: #FCA5A5; color: #7F1D1D; }
+    .btn-success { background: #D1FAE5; color: var(--success); border: 1px solid #A7F3D0; }
+    .btn-success:hover { background: #6EE7B7; }
+    .btn-neutral { background: #F3F4F6; color: #374151; border: 1px solid var(--border); }
+    .btn-neutral:hover { background: #E5E7EB; }
+    .btn-full { width: 100%; padding: 12px; font-size: 14px; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* ── APP LAYOUT ── */
+    #app-screen { background: var(--bg); }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 1px 0 rgba(0,0,0,.06); position: sticky; top: 0; z-index: 100; }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; }
+    .topbar-brand .brand-icon { width: 34px; height: 34px; background: var(--crimson); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .topbar-brand h1 { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--ink); line-height: 1.2; }
+    .topbar-brand p { font-size: 10.5px; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; font-weight: 500; }
+    .topbar-user { display: flex; align-items: center; gap: 12px; }
+    .user-badge { display: flex; align-items: center; gap: 8px; background: var(--rose-l); border: 1px solid var(--rose); border-radius: 20px; padding: 5px 12px 5px 5px; }
+    .user-avatar { width: 26px; height: 26px; background: var(--crimson); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+    .user-badge span { font-size: 12px; font-weight: 600; color: var(--crimson-d); }
+    .app-body { display: flex; flex: 1; gap: 0; }
+    .sidebar { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; min-height: calc(100vh - 60px); }
+    .sidebar-section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); padding: 10px 10px 6px; }
+    .nav-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: none; background: transparent; color: #374151; font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: all .15s; text-align: left; }
+    .nav-btn .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-btn:hover { background: var(--rose-l); color: var(--crimson); }
+    .nav-btn.active { background: var(--rose); color: var(--crimson); font-weight: 700; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-footer { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px; }
+    .content-area { flex: 1; padding: 28px 32px; overflow-y: auto; min-height: calc(100vh - 60px); }
+    .tab-content { display: none; animation: fadeIn .25s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .page-header { margin-bottom: 24px; }
+    .page-header h2 { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--ink); }
+    .page-header p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── API URL BANNER ── */
+    .api-banner {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .api-banner input {
+      flex: 1;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #1E40AF;
+      background: #fff;
+      outline: none;
+    }
+    .api-banner input:focus { border-color: #3B82F6; }
+    #api-status-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      background: #D1D5DB;
+      transition: background .3s;
+    }
+    #api-status-dot.ok  { background: var(--success); }
+    #api-status-dot.err { background: #DC2626; }
+
+    /* ── SCAN ── */
+    .scan-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; padding: 32px; margin-bottom: 20px; text-align: center; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .scan-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--crimson), var(--crimson-l)); }
+    .scan-icon-wrap { width: 80px; height: 80px; background: var(--rose-l); border: 2px dashed var(--rose); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 16px; transition: all .3s; }
+    .scan-card.scanning .scan-icon-wrap { animation: pulse 1.2s infinite; border-color: var(--crimson); background: var(--rose); }
+    @keyframes pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(155,28,28,.3); } 50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(155,28,28,.0); } }
+    #scan-status-text { font-size: 15px; font-weight: 500; color: var(--muted); white-space: pre-line; }
+    #scan-status-text.found { color: var(--success); font-weight: 700; }
+    #scan-status-text.notfound { color: var(--warning); }
+    .scan-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* ── PATIENT CARD ── */
+    .patient-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; padding: 28px; box-shadow: var(--shadow); margin-bottom: 20px; display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; }
+    .patient-avatar-big { width: 72px; height: 72px; background: linear-gradient(135deg, var(--crimson), var(--crimson-l)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; font-family: 'DM Serif Display', serif; box-shadow: 0 4px 14px rgba(155,28,28,.3); }
+    .patient-details { display: grid; gap: 10px; }
+    .patient-name { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); }
+    .info-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #374151; }
+    .chip strong { color: var(--crimson); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+    .rfid-badge { font-family: 'JetBrains Mono', monospace; background: var(--rose-l); border: 1px solid var(--rose); color: var(--crimson); border-radius: 6px; padding: 5px 12px; font-size: 12.5px; display: inline-block; }
+
+    /* ── TABLES ── */
+    .table-wrap { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .table-toolbar { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .table-toolbar h3 { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .table-scroll { overflow-x: auto; max-height: 380px; overflow-y: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table thead { position: sticky; top: 0; z-index: 5; }
+    .data-table th { background: #1A1A1A; color: #fff; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; padding: 11px 16px; text-align: left; }
+    .data-table td { padding: 11px 16px; border-bottom: 1px solid var(--border); color: #374151; vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr { cursor: pointer; transition: background .12s; }
+    .data-table tbody tr:hover { background: var(--rose-l); }
+    .data-table tbody tr.selected { background: var(--rose); }
+    .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .empty-row td { text-align: center; color: var(--muted); padding: 32px !important; font-style: italic; }
+
+    /* ── FORMS ── */
+    .form-panel { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; padding: 28px 32px; max-width: 560px; box-shadow: var(--shadow); }
+    .form-field { margin-bottom: 18px; }
+    .form-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 6px; }
+    .form-field input[type="text"], .form-field input[type="number"], .form-field input[type="date"], .form-field select { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); background: var(--surface); outline: none; transition: border-color .2s, box-shadow .2s; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--crimson); box-shadow: 0 0 0 3px rgba(155,28,28,.1); }
+    .input-group { display: flex; gap: 8px; }
+    .input-group input { flex: 1; }
+    .birthday-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
+    .radio-row { display: flex; gap: 20px; }
+    .radio-row label { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; text-transform: none; letter-spacing: 0; }
+    .radio-row input[type="radio"] { accent-color: var(--crimson); width: 15px; height: 15px; }
+    .form-actions { margin-top: 24px; display: flex; gap: 10px; }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(4px); z-index: 500; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: var(--surface); border-radius: 16px; padding: 28px; width: 420px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,.2); animation: scaleIn .2s ease; }
+    @keyframes scaleIn { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-box h3 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); margin-bottom: 6px; }
+    .modal-box p { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+    .rfid-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 220px; overflow-y: auto; margin-bottom: 16px; padding: 4px; }
+    .tag-btn { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--bg); border: 1.5px dashed var(--border); border-radius: 8px; padding: 10px; cursor: pointer; transition: all .15s; color: var(--ink); text-align: center; }
+    .tag-btn:hover { background: var(--crimson); color: #fff; border-color: var(--crimson); transform: translateY(-1px); }
+    .tag-btn.registered { border-color: var(--success); color: var(--success); background: #F0FDF4; }
+    .tag-btn.registered:hover { background: var(--success); color: #fff; border-color: var(--success); }
+
+    /* ── TOAST ── */
+    #toast { position: fixed; bottom: 28px; right: 28px; background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 9999; transform: translateY(80px); opacity: 0; transition: all .3s ease; max-width: 320px; }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.toast-success { background: #065F46; }
+    #toast.toast-error   { background: #991B1B; }
+    #toast.toast-warn    { background: #92400E; }
+
+    /* ── LOADER ── */
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; padding: 12px 8px; }
+      .sidebar-section-label, .nav-btn span.nav-label, .sidebar-footer .btn { display: none; }
+      .nav-btn { justify-content: center; padding: 10px; }
+      .content-area { padding: 18px; }
+      .patient-card { grid-template-columns: 1fr; }
+      .topbar-brand h1, .topbar-brand p { display: none; }
+      .form-panel { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="login-screen" class="screen active">
+  <div class="login-wrapper">
+    <div class="login-brand">
+      <span class="hosp-icon">🏥</span>
+      <h1>Saint Raphael Hospital</h1>
+      <p>RFID Patient Management System</p>
+    </div>
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <form id="login-form">
+        <div class="field">
+          <label>API Base URL</label>
+          <input type="text" id="api-url-input" value="https://my-python-backend-6khw.onrender.com" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="username" autocomplete="off" placeholder="admin or staff" required>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="btn-login">Sign in</button>
+      </form>
+      <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:16px;">
+        Demo: <code>admin / admin123</code> &nbsp;|&nbsp; <code>staff / staff123</code>
+      </p>
+    </div>
+  </div>
+</div>
+
+<div id="app-screen" class="screen">
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-icon">🏥</div>
+      <div>
+        <h1>Saint Raphael Hospital</h1>
+        <p>RFID Patient Management</p>
+      </div>
+    </div>
+    <div class="topbar-user">
+      <div class="user-badge">
+        <div class="user-avatar" id="user-initials">A</div>
+        <span id="user-display-name">Admin</span>
+      </div>
+      <button class="btn btn-neutral btn-sm" id="btn-logout">Sign out</button>
+    </div>
+  </header>
+  <div class="app-body">
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navigation</div>
+      <button class="nav-btn active" data-tab="tab-scan"><span class="nav-icon">📡</span><span class="nav-label">Scan RFID</span></button>
+      <button class="nav-btn" data-tab="tab-add-patient"><span class="nav-icon">➕</span><span class="nav-label">Add Patient</span></button>
+      <button class="nav-btn" id="nav-view-patients" data-tab="tab-view-patients"><span class="nav-icon">👥</span><span class="nav-label">Patients</span></button>
+      <button class="nav-btn" data-tab="tab-add-med"><span class="nav-icon">💊</span><span class="nav-label">Add Medication</span></button>
+      <button class="nav-btn" id="nav-view-meds" data-tab="tab-view-meds"><span class="nav-icon">📋</span><span class="nav-label">Medications</span></button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-footer">
+        <button class="btn btn-neutral btn-sm" id="sidebar-logout" style="width:100%">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <main class="content-area">
+
+      <div class="api-banner" id="api-banner">
+        <div id="api-status-dot"></div>
+        <span style="font-size:12px;color:#1D4ED8;font-weight:600;white-space:nowrap;">API:</span>
+        <input type="text" id="api-url-app" readonly>
+        <button class="btn btn-neutral btn-sm" id="btn-ping">Ping</button>
+      </div>
+
+      <section id="tab-scan" class="tab-content active">
+        <div class="page-header">
+          <h2>📡 Scan Patient RFID</h2>
+          <p>Tap an RFID wristband or use the simulator to look up a patient.</p>
+        </div>
+        <div class="scan-card" id="scan-card">
+          <div class="scan-icon-wrap">📡</div>
+          <div id="scan-status-text">Ready — tap a card or use the simulator below.</div>
+        </div>
+        <div class="scan-actions">
+          <button class="btn btn-primary" id="btn-trigger-scan">🎭 Simulate RFID Scan</button>
+          <button class="btn btn-success" id="btn-connect-arduino">🔌 Connect Arduino</button>
+        </div>
+      </section>
+
+      <section id="tab-patient-info" class="tab-content">
+        <div class="page-header">
+          <h2>Patient Information</h2>
+          <p>Scanned patient record details</p>
+        </div>
+        <div class="patient-card" id="patient-card-display"></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" id="btn-info-scan-another">← Scan Another</button>
+          <button class="btn btn-primary" id="btn-info-view-meds">💊 View Medications</button>
+        </div>
+      </section>
+
+      <section id="tab-add-patient" class="tab-content">
+        <div class="page-header">
+          <h2>Add New Patient</h2>
+          <p>Register a patient and assign an RFID wristband.</p>
+        </div>
+        <div class="form-panel">
+          <form id="add-patient-form">
+            <div class="form-field">
+              <label>RFID UID</label>
+              <div class="input-group">
+                <input type="text" id="p-rfid" placeholder="e.g. A4-B9-C2-D1" required>
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-fill-rfid">📡 Scan</button>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Full Name</label>
+              <input type="text" id="p-name" placeholder="Patient's full name" required>
+            </div>
+            <div class="form-field">
+              <label>Birthdate</label>
+              <div class="birthday-row">
+                <select id="p-month" required></select>
+                <select id="p-day" required></select>
+                <input type="number" id="p-year" min="1900" max="2030" placeholder="Year" required>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Gender</label>
+              <div class="radio-row">
+                <label><input type="radio" name="p-gender" value="Male" checked> Male</label>
+                <label><input type="radio" name="p-gender" value="Female"> Female</label>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="btn-save-patient">✓ Save Patient</button>
+              <button type="reset" class="btn btn-neutral">Reset</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="tab-view-patients" class="tab-content">
+        <div class="page-header">
+          <h2>Patient Records</h2>
+          <p>All registered patients in the system.</p>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <h3 id="patient-table-count">— patients</h3>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="btn-refresh-patients">🔄 Refresh</button>
+              <button class="btn btn-primary btn-sm" id="btn-open-patient">Open Info</button>
+              <button class="btn btn-danger btn-sm" id="btn-delete-patient">🗑 Delete</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table" id="table-patients">
+              <thead>
+                <tr><th>ID</th><th>RFID UID</th><th>Name</th><th>Birthdate</th><th>Age</th><th>Gender</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-add-med" class="tab-content">
+        <div class="page-header">
+          <h2>Add Medication</h2>
+          <p>Prescribe and schedule medication for a patient.</p>
+        </div>
+        <div class="form-panel">
+          <form id="add-med-form">
+            <div class="form-field">
+              <label>Patient ID</label>
+              <input type="number" id="m-pid" placeholder="e.g. 1" required>
+            </div>
+            <div class="form-field">
+              <label>Medicine</label>
+              <select id="m-med" required>
+                <option value="" disabled selected>Select medicine</option>
+                <option>Paracetamol</option>
+                <option>Amoxicillin</option>
+                <option>Metformin</option>
+                <option>Ibuprofen</option>
+                <option>Amlodipine</option>
+                <option>Omeprazole</option>
+                <option value="Ascorbic Acid">Ascorbic Acid (Vitamin C)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Dosage</label>
+              <select id="m-dosage" required>
+                <option value="" disabled selected>Select dosage</option>
+                <option>250 mg</option><option>500 mg</option>
+                <option value="1000 mg">1000 mg (1g)</option>
+                <option>5 mg</option><option>10 mg</option>
+                <option>20 mg</option><option>40 mg</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Schedule Date</label>
+              <input type="date" id="m-schedule" required>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="btn-save-med">✓ Save Medication</button>
+              <button type="reset" class="btn btn-neutral">Reset</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="tab-view-meds" class="tab-content">
+        <div class="page-header">
+          <h2 id="meds-title">Medication Records</h2>
+          <p id="meds-subtitle">All medication entries.</p>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <h3 id="meds-table-count">— records</h3>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="btn-refresh-meds">🔄 Refresh</button>
+              <button class="btn btn-ghost btn-sm" id="btn-back-to-scan">← Back</button>
+              <button class="btn btn-danger btn-sm" id="btn-delete-med">🗑 Delete</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table" id="table-meds">
+              <thead>
+                <tr><th>ID</th><th>Patient ID</th><th>Medicine</th><th>Dosage</th><th>Schedule</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rfid-modal">
+  <div class="modal-box">
+    <h3>📡 RFID Simulator</h3>
+    <p>Click a tag to simulate scanning. <span style="color:var(--success);font-weight:600;">Green = registered</span>.</p>
+    <div class="rfid-grid" id="rfid-tags-list"></div>
+    <button class="btn btn-neutral" style="width:100%" id="btn-close-rfid">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── STATE ── */
+let API_BASE = 'https://my-python-backend-6khw.onrender.com';
+let authHeader = null;
+let currentRole = null;
+let currentUser = null;
+let activePatientIdView = null;
+let selectedPatientId = null;
+let selectedMedId = null;
+let rfidCallback = null;
+let port, reader;
+
+/* ── TOAST ── */
+let toastTimer;
+function toast(msg, type = 'default') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show toast-${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3200);
+}
+
+/* ── API HELPER ── */
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+  if (authHeader) opts.headers['Authorization'] = authHeader;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API_BASE + path, opts);
+  if (res.status === 204) return null;
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || `HTTP Error ${res.status}`);
+  return data;
+}
+
+/* ── UTILS ── */
+const calculateAge = bday => {
+  if (!bday) return 'N/A';
+  const parts = bday.split('/');
+  if (parts.length !== 3) return 'N/A';
+  const [m, d, y] = parts.map(Number);
+  const now = new Date();
+  let age = now.getFullYear() - y;
+  if ((now.getMonth() + 1) < m || ((now.getMonth() + 1) === m && now.getDate() < d)) age--;
+  return age;
+};
+
+const showScreen = id => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+};
+
+const switchTab = id => {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+  
+  document.querySelectorAll('.nav-btn[data-tab]').forEach(b => {
+    if (b.dataset.tab === id) b.classList.add('active');
+  });
+};
+
+const setLoading = (btnId, loading) => {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span>';
+  } else {
+    btn.innerHTML = btn._orig || btn.innerHTML;
+  }
+};
+
+const initBirthday = () => {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('p-month').innerHTML = months.map((m,i) => `<option value="${i+1}">${m}</option>`).join('');
+  document.getElementById('p-day').innerHTML = Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  document.getElementById('p-year').value = 2000;
+};
+
+/* ── RFID MODAL ── */
+const openRfidModal = async (cb) => {
+  rfidCallback = cb;
+  const list = document.getElementById('rfid-tags-list');
+  list.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:12px">Loading…</div>';
+  document.getElementById('rfid-modal').classList.add('active');
+  
+  const tags = ['A4-B9-C2-D1', 'E8-F0-93-01', '3F-9A-00-CC', 'BB-44-11-22', 'FF-CC-AB-99'];
+  try {
+    const patients = await api('GET', '/api/patients') || [];
+    const registeredUids = patients.map(p => p.rfid_uid);
+    list.innerHTML = tags.map(tag => {
+      const isReg = registeredUids.includes(tag);
+      return `<button type="button" class="tag-btn ${isReg ? 'registered' : ''}" onclick="selectRfidTag('${tag}')">${tag}</button>`;
+    }).join('');
+  } catch (err) {
+    list.innerHTML = tags.map(tag => `<button type="button" class="tag-btn" onclick="selectRfidTag('${tag}')">${tag}</button>`).join('');
+  }
+};
+
+window.selectRfidTag = (uid) => {
+  document.getElementById('rfid-modal').classList.remove('active');
+  if (rfidCallback) rfidCallback(uid);
+};
+
+/* ── EVENT HANDLERS ── */
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  API_BASE = document.getElementById('api-url-input').value.replace(/\/$/, '');
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+
+  setLoading('btn-login', true);
+  try {
+    // Generate simple simulated login authentication for backend compatibility
+    authHeader = 'Basic ' + btoa(`${u}:${p}`);
+    
+    // Validate by attempting a ping or reading patients endpoint
+    await api('GET', '/api/patients');
+    
+    currentUser = u;
+    currentRole = u === 'admin' ? 'Administrator' : 'Staff';
+    document.getElementById('user-initials').textContent = u[0].toUpperCase();
+    document.getElementById('user-display-name').textContent = u.charAt(0).toUpperCase() + u.slice(1);
+    document.getElementById('api-url-app').value = API_BASE;
+    document.getElementById('api-status-dot').className = 'ok';
+    
+    showScreen('app-screen');
+    toast(`Welcome back, ${u}!`, 'success');
+    loadPatients();
+  } catch (err) {
+    authHeader = null;
+    toast(err.message || 'Connection or credentials failed.', 'error');
+  } finally {
+    setLoading('btn-login', false);
+  }
+});
+
+const handleLogout = () => {
+  authHeader = null;
+  currentUser = null;
+  currentRole = null;
+  showScreen('login-screen');
+  toast('Signed out successfully.');
+};
+
+document.getElementById('btn-logout').addEventListener('click', handleLogout);
+document.getElementById('sidebar-logout').addEventListener('click', handleLogout);
+
+document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const targetTab = btn.dataset.tab;
+    switchTab(targetTab);
+    if (targetTab === 'tab-view-patients') loadPatients();
+    if (targetTab === 'tab-view-meds') loadMedications();
+  });
+});
+
+/* ── API PING ── */
+document.getElementById('btn-ping').addEventListener('click', async () => {
+  const dot = document.getElementById('api-status-dot');
+  dot.className = '';
+  try {
+    await api('GET', '/api/patients');
+    dot.className = 'ok';
+    toast('API online and responsive!', 'success');
+  } catch (err) {
+    dot.className = 'err';
+    toast('API offline or returned an error.', 'error');
+  }
+});
+
+/* ── SCAN WORKFLOW ── */
+document.getElementById('btn-trigger-scan').addEventListener('click', () => {
+  openRfidModal(async (uid) => {
+    const card = document.getElementById('scan-card');
+    const status = document.getElementById('scan-status-text');
+    card.classList.add('scanning');
+    status.innerText = `Scanning device UID: ${uid}...`;
+    
+    setTimeout(async () => {
+      card.classList.remove('scanning');
+      try {
+        const patients = await api('GET', '/api/patients') || [];
+        const found = patients.find(p => p.rfid_uid === uid);
+        
+        if (found) {
+          status.innerText = `Matched patient: ${found.name}`;
+          status.className = 'found';
+          toast('Record matched!', 'success');
+          displayPatientDetails(found);
+        } else {
+          status.innerText = `New RFID UID detected: ${uid}\nThis wristband is not registered.`;
+          status.className = 'notfound';
+          toast('UID not found in system.', 'warn');
+        }
+      } catch (err) {
+        status.innerText = 'Error loading system records.';
+        status.className = '';
+        toast('Failed to search registry.', 'error');
+      }
+    }, 1000);
+  });
+});
+
+function displayPatientDetails(patient) {
+  switchTab('tab-patient-info');
+  activePatientIdView = patient.id;
+  const card = document.getElementById('patient-card-display');
+  card.innerHTML = `
+    <div class="patient-avatar-big">${patient.name[0].toUpperCase()}</div>
+    <div class="patient-details">
+      <h3 class="patient-name">${patient.name}</h3>
+      <div class="info-chips">
+        <span class="chip"><strong>ID</strong> #${patient.id}</span>
+        <span class="chip"><strong>Age</strong> ${calculateAge(patient.birthdate)}</span>
+        <span class="chip"><strong>Gender</strong> ${patient.gender}</span>
+        <span class="chip"><strong>Birthdate</strong> ${patient.birthdate}</span>
+      </div>
+      <div><span class="rfid-badge">RFID: ${patient.rfid_uid}</span></div>
+    </div>
+  `;
+}
+
+document.getElementById('btn-info-scan-another').addEventListener('click', () => {
+  switchTab('tab-scan');
+  document.getElementById('scan-status-text').innerText = 'Ready — tap a card or use the simulator.';
+  document.getElementById('scan-status-text').className = '';
+});
+
+document.getElementById('btn-info-view-meds').addEventListener('click', () => {
+  if (activePatientIdView) {
+    loadMedications(activePatientIdView);
+  }
+});
+
+/* ── REFRESH / DATA LOADING ── */
+async function loadPatients() {
+  try {
+    const data = await api('GET', '/api/patients') || [];
+    document.getElementById('patient-table-count').innerText = `${data.length} records`;
+    const tbody = document.querySelector('#table-patients tbody');
+    
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">No patients registered in the system.</td></tr>`;
+      return;
+    }
+    
+    tbody.innerHTML = data.map(p => `
+      <tr onclick="selectPatientRow(this, ${p.id})">
+        <td class="mono">${p.id}</td>
+        <td class="mono">${p.rfid_uid}</td>
+        <td><strong>${p.name}</strong></td>
+        <td>${p.birthdate}</td>
+        <td>${calculateAge(p.birthdate)}</td>
+        <td>${p.gender}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    toast('Error parsing patients table.', 'error');
+  }
+}
+
+window.selectPatientRow = (row, id) => {
+  document.querySelectorAll('#table-patients tbody tr').forEach(r => r.classList.remove('selected'));
+  row.classList.add('selected');
+  selectedPatientId = id;
+};
+
+document.getElementById('btn-refresh-patients').addEventListener('click', loadPatients);
+
+document.getElementById('btn-open-patient').addEventListener('click', async () => {
+  if (!selectedPatientId) return toast('Select a patient from the list first.', 'warn');
+  try {
+    const p = await api('GET', `/api/patients/${selectedPatientId}`);
+    displayPatientDetails(p);
+  } catch (err) {
+    toast('Could not find patient info.', 'error');
+  }
+});
+
+document.getElementById('btn-delete-patient').addEventListener('click', async () => {
+  if (!selectedPatientId) return toast('Select a patient to delete.', 'warn');
+  if (!confirm('Are you sure you want to delete this patient record? All linked medications will be lost.')) return;
+  
+  try {
+    await api('DELETE', `/api/patients/${selectedPatientId}`);
+    toast('Patient deleted.', 'success');
+    selectedPatientId = null;
+    loadPatients();
+  } catch (err) {
+    toast('Failed to delete record.', 'error');
+  }
+});
+
+/* ── ADD PATIENT ── */
+document.getElementById('btn-fill-rfid').addEventListener('click', () => {
+  openRfidModal((uid) => {
+    document.getElementById('p-rfid').value = uid;
+  });
+});
+
+document.getElementById('add-patient-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setLoading('btn-save-patient', true);
+  
+  const m = document.getElementById('p-month').value;
+  const d = document.getElementById('p-day').value;
+  const y = document.getElementById('p-year').value;
+  const bday = `${m.padStart(2,'0')}/${d.padStart(2,'0')}/${y}`;
+  
+  const payload = {
+    rfid_uid: document.getElementById('p-rfid').value.trim(),
+    name: document.getElementById('p-name').value.trim(),
+    birthdate: bday,
+    gender: document.querySelector('input[name="p-gender"]:checked').value,
+  };
+
+  try {
+    await api('POST', '/api/patients', payload);
+    toast('Patient record created successfully!', 'success');
+    document.getElementById('add-patient-form').reset();
+    initBirthday();
+    switchTab('tab-view-patients');
+    loadPatients();
+  } catch (err) {
+    toast(err.message || 'Error creating patient.', 'error');
+  } finally {
+    setLoading('btn-save-patient', false);
+  }
+});
+
+/* ── MEDICATION WORKFLOW ── */
+document.getElementById('add-med-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setLoading('btn-save-med', true);
+
+  const payload = {
+    patient_id: parseInt(document.getElementById('m-pid').value),
+    medicine: document.getElementById('m-med').value,
+    dosage: document.getElementById('m-dosage').value,
+    schedule: document.getElementById('m-schedule').value,
+  };
+
+  try {
+    await api('POST', '/api/medications', payload);
+    toast('Prescription added.', 'success');
+    document.getElementById('add-med-form').reset();
+    switchTab('tab-view-meds');
+    loadMedications();
+  } catch (err) {
+    toast(err.message || 'Error adding prescription.', 'error');
+  } finally {
+    setLoading('btn-save-med', false);
+  }
+});
+
+async function loadMedications(filterPatientId = null) {
+  switchTab('tab-view-meds');
+  selectedMedId = null;
+  const title = document.getElementById('meds-title');
+  const subtitle = document.getElementById('meds-subtitle');
+  
+  if (filterPatientId) {
+    title.innerText = `Patient #${filterPatientId} Medications`;
+    subtitle.innerText = 'Listing medication schedule for selected patient.';
+  } else {
+    title.innerText = 'Medication Records';
+    subtitle.innerText = 'All medication entries.';
+  }
+
+  try {
+    let data = await api('GET', '/api/medications') || [];
+    if (filterPatientId) {
+      data = data.filter(m => m.patient_id === filterPatientId);
+    }
+    
+    document.getElementById('meds-table-count').innerText = `${data.length} records`;
+    const tbody = document.querySelector('#table-meds tbody');
+    
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">No medications recorded.</td></tr>`;
+      return;
+    }
+    
+    tbody.innerHTML = data.map(m => `
+      <tr onclick="selectMedRow(this, ${m.id})">
+        <td class="mono">${m.id}</td>
+        <td class="mono">${m.patient_id}</td>
+        <td><strong>${m.medicine}</strong></td>
+        <td>${m.dosage}</td>
+        <td>${m.schedule}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    toast('Error parsing medications table.', 'error');
+  }
+}
+
+window.selectMedRow = (row, id) => {
+  document.querySelectorAll('#table-meds tbody tr').forEach(r => r.classList.remove('selected'));
+  row.classList.add('selected');
+  selectedMedId = id;
+};
+
+document.getElementById('btn-refresh-meds').addEventListener('click', () => loadMedications());
+document.getElementById('btn-back-to-scan').addEventListener('click', () => switchTab('tab-scan'));
+
+document.getElementById('btn-delete-med').addEventListener('click', async () => {
+  if (!selectedMedId) return toast('Select a medication row to delete.', 'warn');
+  if (!confirm('Cancel this medication schedule?')) return;
+  
+  try {
+    await api('DELETE', `/api/medications/${selectedMedId}`);
+    toast('Prescription deleted.', 'success');
+    selectedMedId = null;
+    loadMedications();
+  } catch (err) {
+    toast('Failed to cancel record.', 'error');
+  }
+});
+
+/* ── SERIAL/ARDUINO PLACEHOLDER ── */
+document.getElementById('btn-connect-arduino').addEventListener('click', () => {
+  toast('Web Serial API requires local host and explicit user hardware access.', 'info');
+});
+
+/* ── MODAL CANCEL ── */
+document.getElementById('btn-close-rfid').addEventListener('click', () => {
+  document.getElementById('rfid-modal').classList.remove('active');
+  rfidCallback = null;
+});
+
+/* ── BOOTSTRAP ── */
+initBirthday();
+</script>
+
+</body>
+</html>
