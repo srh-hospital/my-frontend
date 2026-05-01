@@ -509,6 +509,22 @@ let selectedMedId = null;
 let rfidCallback = null;
 let port, reader;
 
+        const fetchBtn = document.getElementById('fetchBtn');
+        const output = document.getElementById('output');
+
+        fetchBtn.addEventListener('click', async () => {
+            output.textContent = "Fetching data...";
+            try {
+                // Using the API_BASE variable here
+                const response = await fetch(`${API_BASE}/api/data`);
+                const data = await response.json();
+                output.textContent = data.message;
+            } catch (error) {
+                output.textContent = "Error loading data.";
+                console.error(error);
+            }
+        });
+
 /* ── TOAST ── */
 let toastTimer;
 function toast(msg, type = 'default') {
