@@ -516,9 +516,15 @@ let port, reader;
             output.textContent = "Fetching data...";
             try {
                 // Using the API_BASE variable here
-                const response = await fetch(`${API_BASE}/api/data`);
-                const data = await response.json();
-                output.textContent = data.message;
+               const response = await fetch("https://my-python-backend-6khw.onrender.com/your-endpoint", {
+                    method: "POST", // or GET
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ key: "value" }), // if POST
+                  });
+                  
+                  const data = await response.json();
             } catch (error) {
                 output.textContent = "Error loading data.";
                 console.error(error);
