@@ -524,7 +524,7 @@ let port, reader;
                     body: JSON.stringify({ key: "value" }), // if POST
                   });
                   
-                  const data = await response.json();
+                const data = await response.json();
             } catch (error) {
                 output.textContent = "Error loading data.";
                 console.error(error);
